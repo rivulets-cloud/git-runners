@@ -1,0 +1,19 @@
+resource "aws_kms_key" "default" {
+
+  description             = format("GitLab Runner module managed key %s", terraform.workspace)
+  deletion_window_in_days = var.kms_deletion_window_in_days > 0 ? var.kms_deletion_window_in_days : null
+  enable_key_rotation     = var.kms_deletion_window_in_days > 0 ? true : false
+  tags                    = local.tags
+  policy = templatefile("${path.module}/policies/kms-policy.json",
+    {
+      arn_format = "arn:aws"
+      aws_region = data.aws_region.current.name
+      account_id = data.aws_caller_identity.current.account_id
+    }
+  )
+}
+
+resource "aws_kms_alias" "default" {
+  name          = "alias/${var.kms_alias_name}"
+  target_key_id = aws_kms_key.default.key_id
+}
